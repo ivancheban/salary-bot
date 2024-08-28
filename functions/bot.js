@@ -113,23 +113,30 @@ async function sendDailyNotification() {
 }
 
 exports.handler = async (event) => {
+    console.log('Handler function called');
+    console.log('Event:', JSON.stringify(event));
     try {
         const body = JSON.parse(event.body);
+        console.log('Parsed body:', body);
 
         // Check if this is the daily notification trigger
         if (body && body.trigger === 'daily_notification') {
+            console.log('Daily notification trigger received');
             const now = moment().tz(KYIV_TZ);
             const today = now.format('YYYY-MM-DD');
 
             // Only send notification if it hasn't been sent today
             if (lastNotificationDate !== today) {
+                console.log('Sending daily notification');
                 await sendDailyNotification();
                 lastNotificationDate = today;
+                console.log('Daily notification sent successfully');
                 return { 
                     statusCode: 200, 
                     body: JSON.stringify({ message: 'Daily notification sent successfully' })
                 };
             } else {
+                console.log('Notification already sent today');
                 return { 
                     statusCode: 200, 
                     body: JSON.stringify({ message: 'Notification already sent today' })
@@ -138,6 +145,7 @@ exports.handler = async (event) => {
         }
 
         // Handle regular bot updates
+        console.log('Handling regular bot update');
         await bot.handleUpdate(body);
         return { 
             statusCode: 200, 

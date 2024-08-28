@@ -3,9 +3,9 @@ name: Daily Salary Notification
 on:
   schedule:
     # This will run at 11:19 UTC (13:19 Kyiv time during standard time)
-    - cron: '40 11 * * *'
+    - cron: '59 12 * * *'
     # This will run at 10:19 UTC (13:19 Kyiv time during daylight saving time)
-    - cron: '40 10 * * *'
+    - cron: '59 11 * * *'
   workflow_dispatch:  # This allows manual triggering of the workflow
 
 jobs:
@@ -21,10 +21,12 @@ jobs:
     - name: Trigger Netlify Function
       run: |
         echo "Sending request to Netlify function"
+        echo "URL: ${{ secrets.NETLIFY_FUNCTION_URL }}"
         response=$(curl -v -X POST ${{ secrets.NETLIFY_FUNCTION_URL }} \
         -H "Content-Type: application/json" \
-        -d '{"trigger": "daily_notification"}')
-        echo "Full response from Netlify:"
+        -d '{"trigger": "daily_notification"}' 2>&1)
+        echo "Curl command completed"
+        echo "Full response (including headers):"
         echo "$response"
       env:
         NETLIFY_FUNCTION_URL: ${{ secrets.NETLIFY_FUNCTION_URL }}
@@ -32,8 +34,10 @@ jobs:
     - name: Check Netlify response
       run: |
         echo "Checking Netlify response..."
-        echo "Response: $response"
-        if [[ $response == *"Daily notification sent successfully"* ]]; then
+        if [ -z "$response" ]; then
+          echo "Error: Empty response from Netlify function"
+          exit 1
+        elif [[ $response == *"Daily notification sent successfully"* ]]; then
           echo "Notification sent successfully"
         else
           echo "Unexpected response from Netlify function"
