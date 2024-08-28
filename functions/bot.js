@@ -108,7 +108,7 @@ async function sendDailyNotification() {
         console.log('Daily notification sent successfully');
     } catch (error) {
         console.error('Failed to send daily notification:', error);
-        throw error; // Re-throw the error to be caught in the handler
+        throw error;
     }
 }
 
@@ -116,8 +116,26 @@ exports.handler = async (event) => {
     console.log('Handler function called');
     console.log('Event:', JSON.stringify(event));
     try {
-        const body = JSON.parse(event.body);
-        console.log('Parsed body:', body);
+        // Check if it's a POST request
+        if (event.httpMethod !== 'POST') {
+            return { 
+                statusCode: 405, 
+                body: JSON.stringify({ error: 'Method Not Allowed' })
+            };
+        }
+
+        // Parse the body
+        let body;
+        try {
+            body = JSON.parse(event.body);
+            console.log('Parsed body:', body);
+        } catch (e) {
+            console.error('Error parsing request body:', e);
+            return { 
+                statusCode: 400, 
+                body: JSON.stringify({ error: 'Invalid JSON in request body' })
+            };
+        }
 
         // Check if this is the daily notification trigger
         if (body && body.trigger === 'daily_notification') {
@@ -144,18 +162,27 @@ exports.handler = async (event) => {
             }
         }
 
-        // Handle regular bot updates
-        console.log('Handling regular bot update');
-        await bot.handleUpdate(body);
+        // Check if it's a Telegram update
+        if (body && body.update_id) {
+            console.log('Handling Telegram update');
+            await bot.handleUpdate(body);
+            return { 
+                statusCode: 200, 
+                body: JSON.stringify({ message: 'OK' })
+            };
+        }
+
+        // If we reach here, it's an unrecognized request
+        console.log('Unrecognized request');
         return { 
-            statusCode: 200, 
-            body: JSON.stringify({ message: 'OK' })
+            statusCode: 400, 
+            body: JSON.stringify({ error: 'Unrecognized request' })
         };
     } catch (e) {
         console.error('Error in handler:', e);
         return { 
-            statusCode: 400, 
-            body: JSON.stringify({ error: 'This endpoint is meant for bot and telegram communication' })
+            statusCode: 500, 
+            body: JSON.stringify({ error: 'Internal server error' })
         };
     }
 };

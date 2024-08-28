@@ -3,9 +3,9 @@ name: Daily Salary Notification
 on:
   schedule:
     # This will run at 11:19 UTC (13:19 Kyiv time during standard time)
-    - cron: '59 12 * * *'
+    - cron: '36 13 * * *'
     # This will run at 10:19 UTC (13:19 Kyiv time during daylight saving time)
-    - cron: '59 11 * * *'
+    - cron: '36 12 * * *'
   workflow_dispatch:  # This allows manual triggering of the workflow
 
 jobs:

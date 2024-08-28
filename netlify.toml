@@ -1,10 +1,14 @@
 [build]
   functions = "functions"
 
-[functions]
-  node_bundler = "esbuild"
-
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/:splat"
   status = 200
+
+[functions]
+  node_bundler = "esbuild"
+
+[functions.bot]
+  included_files = ["functions/bot.js"]
+  external_node_modules = ["telegraf", "moment-timezone"]
