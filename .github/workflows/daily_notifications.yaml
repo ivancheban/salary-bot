@@ -1,0 +1,20 @@
+name: Daily Salary Notification
+
+on:
+  schedule:
+    # This will run every day at 10:30 AM UTC
+    # Adjust the time as needed, keeping in mind it's in UTC
+    - cron: '15 13 * * *'
+  workflow_dispatch:  # This allows manual triggering of the workflow
+
+jobs:
+  trigger_netlify_function:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Trigger Netlify Function
+      run: |
+        curl -X POST ${{ secrets.NETLIFY_FUNCTION_URL }} \
+        -H "Content-Type: application/json" \
+        -d '{"trigger": "daily_notification"}'
+      env:
+        NETLIFY_FUNCTION_URL: ${{ secrets.NETLIFY_FUNCTION_URL }}
