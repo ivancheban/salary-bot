@@ -2,20 +2,20 @@ name: Daily Salary Notification
 
 on:
   schedule:
-    # This will run at 11:19 UTC (13:19 Kyiv time during standard time)
-    - cron: '27 13 * * *'
-    # This will run at 10:19 UTC (13:19 Kyiv time during daylight saving time)
-    - cron: '27 14 * * *'
-  workflow_dispatch:  # This allows manual triggering of the workflow
+    - cron: '25 22 * * *'  # 16:27 Kyiv time during winter (UTC+2)
+    - cron: '25 23 * * *'  # 16:27 Kyiv time during summer (UTC+3)
+  workflow_dispatch:  # This allows manual triggering
 
 jobs:
-  check-price:
+  trigger-salary-notification:
     runs-on: ubuntu-latest
     steps:
     - name: Curl request and check response
       run: |
         echo "Sending request to ${{ secrets.NETLIFY_FUNCTION_URL }}"
-        response=$(curl -v -X POST ${{ secrets.NETLIFY_FUNCTION_URL }} -H "Content-Type: application/json" -d '{"message":{"text":"/when_salary"}}')
+        response=$(curl -v -X POST ${{ secrets.NETLIFY_FUNCTION_URL }} \
+        -H "Content-Type: application/json" \
+        -d '{"trigger": "daily_notification", "message":{"text":"/when_salary"}}')
         echo "Response: $response"
         echo "Response length: ${#response}"
         curl_exit_code=$?
@@ -24,8 +24,12 @@ jobs:
         if [[ -z "$response" ]]; then
           echo "Error: No response received"
           exit 1
+        elif [[ $response == *"Daily notification sent successfully"* ]]; then
+          echo "Daily notification sent successfully"
         else
-          echo "Response received successfully"
+          echo "Unexpected response from Netlify function"
+          echo "Full response: $response"
+          exit 1
         fi
       env:
-        NETLIFY_URL: ${{ secrets.NETLIFY_FUNCTION_URL }}
+        NETLIFY_FUNCTION_URL: ${{ secrets.NETLIFY_FUNCTION_URL }}

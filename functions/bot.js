@@ -91,11 +91,11 @@ function getSalaryMessage(now, nextSalary) {
     }
 }
 
-bot.command('when_salary', (ctx) => {
+bot.command('when_salary', async (ctx) => {
     const now = moment().tz(KYIV_TZ);
     const nextSalary = getNextSalaryDate(now);
     const message = getSalaryMessage(now, nextSalary);
-    ctx.reply(message);
+    await ctx.reply(message);
 });
 
 async function sendDailyNotification() {
@@ -116,26 +116,8 @@ exports.handler = async (event) => {
     console.log('Handler function called');
     console.log('Event:', JSON.stringify(event));
     try {
-        // Check if it's a POST request
-        if (event.httpMethod !== 'POST') {
-            return { 
-                statusCode: 405, 
-                body: JSON.stringify({ error: 'Method Not Allowed' })
-            };
-        }
-
-        // Parse the body
-        let body;
-        try {
-            body = JSON.parse(event.body);
-            console.log('Parsed body:', body);
-        } catch (e) {
-            console.error('Error parsing request body:', e);
-            return { 
-                statusCode: 400, 
-                body: JSON.stringify({ error: 'Invalid JSON in request body' })
-            };
-        }
+        const body = JSON.parse(event.body);
+        console.log('Parsed body:', body);
 
         // Check if this is the daily notification trigger
         if (body && body.trigger === 'daily_notification') {
@@ -163,7 +145,7 @@ exports.handler = async (event) => {
         }
 
         // Check if it's a Telegram update
-        if (body && body.update_id) {
+        if (body && body.message) {
             console.log('Handling Telegram update');
             await bot.handleUpdate(body);
             return { 
