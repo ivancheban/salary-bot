@@ -2,14 +2,21 @@ name: Daily Salary Notification
 
 on:
   schedule:
-    - cron: '58 12 * * *'  # 15:35 Kyiv time during summer
-    - cron: '58 13 * * *'  # 15:35 Kyiv time during winter
+    - cron: '04 13 * * *'  # 16:04 Kyiv time during winter (UTC+2)
+    - cron: '04 14 * * *'  # 16:04 Kyiv time during summer (UTC+3)
   workflow_dispatch:  # This allows manual triggering
 
 jobs:
   trigger-salary-notification:
     runs-on: ubuntu-latest
     steps:
+    - name: Log workflow trigger time
+      run: |
+        echo "Workflow triggered at: $(date -u)"
+        echo "Scheduled times (UTC):"
+        echo "  - 13:04 (16:04 Kyiv time during winter)"
+        echo "  - 14:04 (16:04 Kyiv time during summer)"
+
     - name: Curl request and check response
       run: |
         echo "Sending request to ${{ secrets.NETLIFY_FUNCTION_URL }}"
@@ -32,4 +39,7 @@ jobs:
           exit 1
         fi
       env:
-        NETLIFY_URL: ${{ secrets.NETLIFY_FUNCTION_URL }}
+        NETLIFY_FUNCTION_URL: ${{ secrets.NETLIFY_FUNCTION_URL }}
+
+    - name: Log workflow completion time
+      run: echo "Workflow completed at: $(date -u)"
