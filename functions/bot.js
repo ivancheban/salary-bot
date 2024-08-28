@@ -100,12 +100,15 @@ bot.command('when_salary', async (ctx) => {
 
 async function sendDailyNotification() {
     const now = moment().tz(KYIV_TZ);
+    console.log('Generating notification for Kyiv time:', now.format());
     const nextSalary = getNextSalaryDate(now);
     const message = getSalaryMessage(now, nextSalary);
+    console.log('Notification message:', message);
 
     try {
         await bot.telegram.sendMessage(CHAT_ID, message);
-        console.log('Daily notification sent successfully');
+        console.log('Daily notification sent successfully to chat:', CHAT_ID);
+        return true;
     } catch (error) {
         console.error('Failed to send daily notification:', error);
         throw error;
@@ -113,30 +116,34 @@ async function sendDailyNotification() {
 }
 
 exports.handler = async (event) => {
-    console.log('Handler function called');
+    console.log('Handler function called at:', new Date().toISOString());
     console.log('Event:', JSON.stringify(event));
     try {
         const body = JSON.parse(event.body);
         console.log('Parsed body:', body);
 
-        // Check if this is the daily notification trigger
         if (body && body.trigger === 'daily_notification') {
             console.log('Daily notification trigger received');
             const now = moment().tz(KYIV_TZ);
             const today = now.format('YYYY-MM-DD');
 
-            // Only send notification if it hasn't been sent today
             if (lastNotificationDate !== today) {
-                console.log('Sending daily notification');
-                await sendDailyNotification();
-                lastNotificationDate = today;
-                console.log('Daily notification sent successfully');
-                return { 
-                    statusCode: 200, 
-                    body: JSON.stringify({ message: 'Daily notification sent successfully' })
-                };
+                console.log('Sending daily notification for date:', today);
+                const success = await sendDailyNotification();
+                if (success) {
+                    lastNotificationDate = today;
+                    return { 
+                        statusCode: 200, 
+                        body: JSON.stringify({ message: 'Daily notification sent successfully' })
+                    };
+                } else {
+                    return { 
+                        statusCode: 500, 
+                        body: JSON.stringify({ error: 'Failed to send daily notification' })
+                    };
+                }
             } else {
-                console.log('Notification already sent today');
+                console.log('Notification already sent today:', today);
                 return { 
                     statusCode: 200, 
                     body: JSON.stringify({ message: 'Notification already sent today' })
@@ -144,7 +151,6 @@ exports.handler = async (event) => {
             }
         }
 
-        // Check if it's a Telegram update
         if (body && body.message) {
             console.log('Handling Telegram update');
             await bot.handleUpdate(body);
@@ -154,7 +160,6 @@ exports.handler = async (event) => {
             };
         }
 
-        // If we reach here, it's an unrecognized request
         console.log('Unrecognized request');
         return { 
             statusCode: 400, 

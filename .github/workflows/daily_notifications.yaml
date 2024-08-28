@@ -2,20 +2,24 @@ name: Daily Salary Notification
 
 on:
   schedule:
-    - cron: '25 22 * * *'  # 16:27 Kyiv time during winter (UTC+2)
-    - cron: '25 23 * * *'  # 16:27 Kyiv time during summer (UTC+3)
+    - cron: '30 17 * * *'  # This is 20:30 Kyiv time (UTC+3)
   workflow_dispatch:  # This allows manual triggering
 
 jobs:
   trigger-salary-notification:
     runs-on: ubuntu-latest
     steps:
+    - name: Log workflow start time
+      run: |
+        echo "Workflow started at: $(date -u)"
+        echo "Kyiv time: $(TZ='Europe/Kiev' date)"
+
     - name: Curl request and check response
       run: |
         echo "Sending request to ${{ secrets.NETLIFY_FUNCTION_URL }}"
         response=$(curl -v -X POST ${{ secrets.NETLIFY_FUNCTION_URL }} \
         -H "Content-Type: application/json" \
-        -d '{"trigger": "daily_notification", "message":{"text":"/when_salary"}}')
+        -d '{"trigger": "daily_notification"}')
         echo "Response: $response"
         echo "Response length: ${#response}"
         curl_exit_code=$?
@@ -26,10 +30,23 @@ jobs:
           exit 1
         elif [[ $response == *"Daily notification sent successfully"* ]]; then
           echo "Daily notification sent successfully"
+        elif [[ $response == *"Notification already sent today"* ]]; then
+          echo "Notification already sent today"
         else
           echo "Unexpected response from Netlify function"
           echo "Full response: $response"
           exit 1
         fi
-      env:
-        NETLIFY_FUNCTION_URL: ${{ secrets.NETLIFY_FUNCTION_URL }}
+
+    - name: Log workflow end time
+      run: |
+        echo "Workflow ended at: $(date -u)"
+        echo "Kyiv time: $(TZ='Europe/Kiev' date)"
+
+    - name: Check GitHub Actions logs
+      if: always()
+      run: |
+        echo "To troubleshoot scheduling issues, please check:"
+        echo "1. The Actions tab in your GitHub repository"
+        echo "2. The 'Scheduled workflows' section under Settings > Actions > Scheduled workflows"
+        echo "3. Ensure the workflow file is in the default branch (usually 'main' or 'master')"
