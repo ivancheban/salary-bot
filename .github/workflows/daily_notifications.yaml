@@ -2,10 +2,8 @@ name: Daily Salary Notification
 
 on:
   schedule:
-    # This will run at 11:19 UTC (13:19 Kyiv time during standard time)
-    - cron: '36 13 * * *'
-    # This will run at 10:19 UTC (13:19 Kyiv time during daylight saving time)
-    - cron: '36 12 * * *'
+    - cron: '44 12 * * *'  # 15:35 Kyiv time during summer
+    - cron: '44 13 * * *'  # 15:35 Kyiv time during winter
   workflow_dispatch:  # This allows manual triggering of the workflow
 
 jobs:
@@ -28,6 +26,10 @@ jobs:
         echo "Curl command completed"
         echo "Full response (including headers):"
         echo "$response"
+        echo "Response status code:"
+        echo "$response" | grep "< HTTP" | awk '{print $3}'
+        echo "Response body:"
+        echo "$response" | sed -n '/^{/,/^}/p'
       env:
         NETLIFY_FUNCTION_URL: ${{ secrets.NETLIFY_FUNCTION_URL }}
 
