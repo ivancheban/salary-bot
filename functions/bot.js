@@ -1,9 +1,11 @@
 const { Telegraf } = require('telegraf');
 const moment = require('moment-timezone');
-const cron = require('node-cron');
 
 const bot = new Telegraf(process.env.TOKEN);
 const KYIV_TZ = 'Europe/Kiev';
+const CHAT_ID = '-1001581609986';
+
+let lastNotificationDate = null;
 
 function easter(year) {
     const a = year % 19;
@@ -96,28 +98,40 @@ bot.command('when_salary', (ctx) => {
     ctx.reply(message);
 });
 
-async function dailySalaryNotification(bot) {
-    try {
-        console.log("Executing scheduled job...");
-        const now = moment().tz(KYIV_TZ);
-        const nextSalary = getNextSalaryDate(now);
-        const message = getSalaryMessage(now, nextSalary);
+async function sendDailyNotification() {
+    const now = moment().tz(KYIV_TZ);
+    const nextSalary = getNextSalaryDate(now);
+    const message = getSalaryMessage(now, nextSalary);
 
-        const response = await bot.telegram.sendMessage('-1001581609986', message);
-        console.log(`Message sent with message id ${response.message_id}`);
-    } catch (e) {
-        console.error(`Failed to send message: ${e.message}`);
+    try {
+        await bot.telegram.sendMessage(CHAT_ID, message);
+        console.log('Daily notification sent successfully');
+    } catch (error) {
+        console.error('Failed to send daily notification:', error);
     }
 }
 
-// Schedule daily notification
-cron.schedule('30 10 * * *', () => dailySalaryNotification(bot), {
-    timezone: KYIV_TZ
-});
-
 exports.handler = async (event) => {
     try {
-        await bot.handleUpdate(JSON.parse(event.body));
+        const body = JSON.parse(event.body);
+
+        // Check if this is the daily notification trigger
+        if (body && body.trigger === 'daily_notification') {
+            const now = moment().tz(KYIV_TZ);
+            const today = now.format('YYYY-MM-DD');
+
+            // Only send notification if it hasn't been sent today
+            if (lastNotificationDate !== today) {
+                await sendDailyNotification();
+                lastNotificationDate = today;
+                return { statusCode: 200, body: 'Daily notification sent successfully' };
+            } else {
+                return { statusCode: 200, body: 'Notification already sent today' };
+            }
+        }
+
+        // Handle regular bot updates
+        await bot.handleUpdate(body);
         return { statusCode: 200, body: 'OK' };
     } catch (e) {
         console.error('Error in handler:', e);
