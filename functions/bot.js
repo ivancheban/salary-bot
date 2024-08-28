@@ -108,6 +108,7 @@ async function sendDailyNotification() {
         console.log('Daily notification sent successfully');
     } catch (error) {
         console.error('Failed to send daily notification:', error);
+        throw error; // Re-throw the error to be caught in the handler
     }
 }
 
@@ -124,17 +125,29 @@ exports.handler = async (event) => {
             if (lastNotificationDate !== today) {
                 await sendDailyNotification();
                 lastNotificationDate = today;
-                return { statusCode: 200, body: 'Daily notification sent successfully' };
+                return { 
+                    statusCode: 200, 
+                    body: JSON.stringify({ message: 'Daily notification sent successfully' })
+                };
             } else {
-                return { statusCode: 200, body: 'Notification already sent today' };
+                return { 
+                    statusCode: 200, 
+                    body: JSON.stringify({ message: 'Notification already sent today' })
+                };
             }
         }
 
         // Handle regular bot updates
         await bot.handleUpdate(body);
-        return { statusCode: 200, body: 'OK' };
+        return { 
+            statusCode: 200, 
+            body: JSON.stringify({ message: 'OK' })
+        };
     } catch (e) {
         console.error('Error in handler:', e);
-        return { statusCode: 400, body: 'This endpoint is meant for bot and telegram communication' };
+        return { 
+            statusCode: 400, 
+            body: JSON.stringify({ error: 'This endpoint is meant for bot and telegram communication' })
+        };
     }
 };
