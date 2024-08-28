@@ -3,19 +3,39 @@ name: Daily Salary Notification
 on:
   schedule:
     # This will run at 11:19 UTC (13:19 Kyiv time during standard time)
-    - cron: '20 11 * * *'
+    - cron: '30 11 * * *'
     # This will run at 10:19 UTC (13:19 Kyiv time during daylight saving time)
-    - cron: '20 10 * * *'
+    - cron: '30 10 * * *'
   workflow_dispatch:  # This allows manual triggering of the workflow
 
 jobs:
   trigger_netlify_function:
     runs-on: ubuntu-latest
     steps:
+    - name: Log start time
+      run: echo "Workflow started at $(date)"
+
+    - name: Log current UTC time
+      run: echo "Current UTC time is $(date -u)"
+
     - name: Trigger Netlify Function
       run: |
-        curl -X POST ${{ secrets.NETLIFY_FUNCTION_URL }} \
+        echo "Sending request to Netlify function"
+        response=$(curl -X POST ${{ secrets.NETLIFY_FUNCTION_URL }} \
         -H "Content-Type: application/json" \
-        -d '{"trigger": "daily_notification"}'
+        -d '{"trigger": "daily_notification"}')
+        echo "Response from Netlify: $response"
       env:
         NETLIFY_FUNCTION_URL: ${{ secrets.NETLIFY_FUNCTION_URL }}
+
+    - name: Log end time
+      run: echo "Workflow ended at $(date)"
+
+    - name: Check Netlify response
+      run: |
+        if [[ $response == *"Daily notification sent successfully"* ]]; then
+          echo "Notification sent successfully"
+        else
+          echo "Unexpected response from Netlify function"
+          exit 1
+        fi
