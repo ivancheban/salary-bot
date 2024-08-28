@@ -1,50 +1,21 @@
-# File: .github/workflows/daily_salary_notification.yml
-
 name: Daily Salary Notification
 
 on:
   schedule:
-    - cron: '09 13 * * *'  # 16:04 Kyiv time during winter (UTC+2)
-    - cron: '09 14 * * *'  # 16:04 Kyiv time during summer (UTC+3)
-  workflow_dispatch:  # This allows manual triggering
+    # This will run at 11:19 UTC (13:19 Kyiv time during standard time)
+    - cron: '15 13 * * *'
+    # This will run at 10:19 UTC (13:19 Kyiv time during daylight saving time)
+    - cron: '15 14 * * *'
+  workflow_dispatch:  # This allows manual triggering of the workflow
 
 jobs:
-  trigger-salary-notification:
+  trigger_netlify_function:
     runs-on: ubuntu-latest
     steps:
-      - name: Log workflow trigger time
-        run: |
-          echo "Workflow triggered at: $(date -u)"
-          echo "Scheduled times (UTC):"
-          echo "  - 13:04 (16:04 Kyiv time during winter)"
-          echo "  - 14:04 (16:04 Kyiv time during summer)"
-
-      - name: Curl request and check response
-        env:
-          NETLIFY_FUNCTION_URL: ${{ secrets.NETLIFY_FUNCTION_URL }}
-        run: |
-          echo "Sending request to ${{ secrets.NETLIFY_FUNCTION_URL }}"
-          response=$(curl -v -X POST ${{ secrets.NETLIFY_FUNCTION_URL }} -H "Content-Type: application/json" -d '{"trigger": "daily_notification"}')
-          echo "Response: $response"
-          echo "Response length: ${#response}"
-          curl_exit_code=$?
-          echo "cURL exit code: $curl_exit_code"
-          
-          if [[ -z "$response" ]]; then
-            echo "Error: No response received"
-            exit 1
-          elif [[ $response == *"Daily notification sent successfully"* ]]; then
-            echo "Daily notification sent successfully"
-          elif [[ $response == *"Notification already sent today"* ]]; then
-            echo "Notification already sent today"
-          else
-            echo "Unexpected response from Netlify function"
-            echo "Full response: $response"
-            exit 1
-          fi
-
-      - name: Log workflow completion time
-        run: |
-          echo "Workflow completed at: $(date -u)"
-
-# End of file
+    - name: Trigger Netlify Function
+      run: |
+        curl -X POST ${{ secrets.NETLIFY_FUNCTION_URL }} \
+        -H "Content-Type: application/json" \
+        -d '{"trigger": "daily_notification"}'
+      env:
+        NETLIFY_FUNCTION_URL: ${{ secrets.NETLIFY_FUNCTION_URL }}
