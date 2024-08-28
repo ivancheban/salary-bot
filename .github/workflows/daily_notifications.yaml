@@ -3,19 +3,29 @@ name: Daily Salary Notification
 on:
   schedule:
     # This will run at 11:19 UTC (13:19 Kyiv time during standard time)
-    - cron: '21 13 * * *'
+    - cron: '27 13 * * *'
     # This will run at 10:19 UTC (13:19 Kyiv time during daylight saving time)
-    - cron: '21 14 * * *'
+    - cron: '27 14 * * *'
   workflow_dispatch:  # This allows manual triggering of the workflow
 
 jobs:
-  trigger_netlify_function:
+  check-price:
     runs-on: ubuntu-latest
     steps:
-    - name: Trigger Netlify Function
+    - name: Curl request and check response
       run: |
-        curl -X POST ${{ secrets.NETLIFY_FUNCTION_URL }} \
-        -H "Content-Type: application/json" \
-        -d '{"trigger": "daily_notification"}'
+        echo "Sending request to ${{ secrets.NETLIFY_FUNCTION_URL }}"
+        response=$(curl -v -X POST ${{ secrets.NETLIFY_FUNCTION_URL }} -H "Content-Type: application/json" -d '{"message":{"text":"/when_salary"}}')
+        echo "Response: $response"
+        echo "Response length: ${#response}"
+        curl_exit_code=$?
+        echo "cURL exit code: $curl_exit_code"
+        
+        if [[ -z "$response" ]]; then
+          echo "Error: No response received"
+          exit 1
+        else
+          echo "Response received successfully"
+        fi
       env:
-        NETLIFY_FUNCTION_URL: ${{ secrets.NETLIFY_FUNCTION_URL }}
+        NETLIFY_URL: ${{ secrets.NETLIFY_FUNCTION_URL }}
