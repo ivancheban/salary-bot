@@ -2,50 +2,34 @@ name: Daily Salary Notification
 
 on:
   schedule:
-    - cron: '44 12 * * *'  # 15:35 Kyiv time during summer
-    - cron: '44 13 * * *'  # 15:35 Kyiv time during winter
-  workflow_dispatch:  # This allows manual triggering of the workflow
+    - cron: '58 12 * * *'  # 15:35 Kyiv time during summer
+    - cron: '58 13 * * *'  # 15:35 Kyiv time during winter
+  workflow_dispatch:  # This allows manual triggering
 
 jobs:
-  trigger_netlify_function:
+  trigger-salary-notification:
     runs-on: ubuntu-latest
     steps:
-    - name: Log start time
-      run: echo "Workflow started at $(date)"
-
-    - name: Log current UTC time
-      run: echo "Current UTC time is $(date -u)"
-
-    - name: Trigger Netlify Function
+    - name: Curl request and check response
       run: |
-        echo "Sending request to Netlify function"
-        echo "URL: ${{ secrets.NETLIFY_FUNCTION_URL }}"
-        response=$(curl -v -X POST ${{ secrets.NETLIFY_FUNCTION_URL }} \
-        -H "Content-Type: application/json" \
-        -d '{"trigger": "daily_notification"}' 2>&1)
-        echo "Curl command completed"
-        echo "Full response (including headers):"
-        echo "$response"
-        echo "Response status code:"
-        echo "$response" | grep "< HTTP" | awk '{print $3}'
-        echo "Response body:"
-        echo "$response" | sed -n '/^{/,/^}/p'
-      env:
-        NETLIFY_FUNCTION_URL: ${{ secrets.NETLIFY_FUNCTION_URL }}
-
-    - name: Check Netlify response
-      run: |
-        echo "Checking Netlify response..."
-        if [ -z "$response" ]; then
-          echo "Error: Empty response from Netlify function"
+        echo "Sending request to ${{ secrets.NETLIFY_FUNCTION_URL }}"
+        response=$(curl -v -X POST ${{ secrets.NETLIFY_FUNCTION_URL }} -H "Content-Type: application/json" -d '{"trigger": "daily_notification"}')
+        echo "Response: $response"
+        echo "Response length: ${#response}"
+        curl_exit_code=$?
+        echo "cURL exit code: $curl_exit_code"
+        
+        if [[ -z "$response" ]]; then
+          echo "Error: No response received"
           exit 1
         elif [[ $response == *"Daily notification sent successfully"* ]]; then
-          echo "Notification sent successfully"
+          echo "Daily notification sent successfully"
+        elif [[ $response == *"Notification already sent today"* ]]; then
+          echo "Notification already sent today"
         else
           echo "Unexpected response from Netlify function"
           echo "Full response: $response"
           exit 1
         fi
-
-    - name: Log end time
-      run: echo "Workflow ended at $(date)"
+      env:
+        NETLIFY_URL: ${{ secrets.NETLIFY_FUNCTION_URL }}
