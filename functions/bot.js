@@ -22,14 +22,14 @@ function easter(year) {
 function isUkrainianHoliday(date) {
     const fixedHolidays = [
         [1, 1],   // New Year's Day
+        [1, 7],   // Orthodox Christmas
         [3, 8],   // International Women's Day
         [5, 1],   // International Workers' Day
-        [5, 8],   // Day of Remembrance and Victory over Nazism in World War II
+        [5, 9],   // Victory Day over Nazism in World War II
         [6, 28],  // Constitution Day
-        [7, 15],  // Statehood Day (since 2023)
         [8, 24],  // Independence Day
-        [10, 1],  // Defenders of Ukraine Day (since 2023)
-        [12, 25], // Christmas
+        [10, 14], // Defenders Day
+        [12, 25], // Catholic Christmas
     ];
 
     if (fixedHolidays.some(([month, day]) => date.month() + 1 === month && date.date() === day)) {
@@ -37,9 +37,12 @@ function isUkrainianHoliday(date) {
     }
 
     const easterDate = easter(date.year());
-    const pentecostDate = easterDate.clone().add(49, 'days');
+    const easterMondayDate = easterDate.clone().add(1, 'day');
+    const trinityDate = easterDate.clone().add(49, 'days');
 
-    return date.isSame(easterDate, 'day') || date.isSame(pentecostDate, 'day');
+    return date.isSame(easterDate, 'day') || 
+           date.isSame(easterMondayDate, 'day') || 
+           date.isSame(trinityDate, 'day');
 }
 
 function getNextSalaryDate(currentDate) {
@@ -51,16 +54,13 @@ function getNextSalaryDate(currentDate) {
         nextSalary.add(1, 'month');
     }
 
-    // Adjust for quarter-end months (March, June, September, December)
-    const quarterEndMonths = [2, 5, 8, 11]; // 0-indexed months
-    if (quarterEndMonths.includes(nextSalary.month())) {
-        nextSalary = nextSalary.endOf('month').set(salaryTime);
-    }
-
     // Adjust for weekends and holidays
     while (nextSalary.day() === 0 || nextSalary.day() === 6 || isUkrainianHoliday(nextSalary)) {
         nextSalary.subtract(1, 'day');
     }
+
+    // Keep the time at 12:10
+    nextSalary.set(salaryTime);
 
     return nextSalary;
 }
