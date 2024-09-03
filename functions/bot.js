@@ -43,26 +43,29 @@ function isUkrainianHoliday(date) {
 }
 
 function getNextSalaryDate(currentDate) {
+    const salaryTime = { hour: 12, minute: 10 };
     let nextSalary;
 
-    if (currentDate.isBefore(moment.tz('2024-09-05', KYIV_TZ))) {
-        nextSalary = moment.tz('2024-09-05', KYIV_TZ);
-    } else if (currentDate.isSame(moment.tz('2024-09-05', KYIV_TZ), 'day')) {
-        nextSalary = moment.tz('2024-09-30', KYIV_TZ);
+    if (currentDate.isBefore(moment.tz('2023-09-05 12:10', KYIV_TZ))) {
+        nextSalary = moment.tz('2023-09-05 12:10', KYIV_TZ);
     } else {
-        nextSalary = currentDate.clone().startOf('month').add(4, 'days');
+        nextSalary = currentDate.clone().startOf('month').add(4, 'days')
+            .set(salaryTime);
+        
         if (currentDate.isAfter(nextSalary)) {
             nextSalary.add(1, 'month');
         }
 
         const quarterEndMonths = [3, 6, 9, 12];
         if (quarterEndMonths.includes(nextSalary.month() + 1)) {
-            nextSalary = nextSalary.endOf('month');
+            nextSalary = nextSalary.endOf('month').set(salaryTime);
         }
 
         while (nextSalary.day() >= 5 || isUkrainianHoliday(nextSalary)) {
             nextSalary.subtract(1, 'day');
         }
+
+        nextSalary.set(salaryTime);
     }
 
     return nextSalary;
@@ -76,17 +79,19 @@ function getSalaryMessage(now, nextSalary) {
     const minutes = duration.minutes();
     const seconds = duration.seconds();
 
-    if (days === 0 && hours === 0 && minutes === 0) {
+    if (difference <= 0) {
         return "🎉🎊 It's Salary Day! 💰💸 Enjoy your well-earned money! 🥳🍾";
+    } else if (days === 0) {
+        return `⏰ Only ${hours}h ${minutes}m ${seconds}s left until Salary Day! 💰 Get ready to celebrate! 🎉`;
     } else if (days === 1) {
-        return "⏰ Only 1 day left until Salary Day! 💰 Get ready to celebrate! 🎉";
+        return `⏰ Only 1 day and ${hours}h ${minutes}m left until Salary Day! 💰 Get ready to celebrate! 🎉`;
     } else if (days === 2) {
         return "🗓 2 days to go until Salary Day! 💼 The wait is almost over! 😊";
     } else if (days === 3) {
         return "📅 3 days remaining until Salary Day! 💰 It's getting closer! 🙌";
     } else {
         const countdownText = `${days}d ${hours}h ${minutes}m ${seconds}s`;
-        const nextSalaryText = `Next Salary: ${nextSalary.format('MMMM D, YYYY')}`;
+        const nextSalaryText = `Next Salary: ${nextSalary.format('MMMM D, YYYY [at] HH:mm')}`;
         return `⏳ Time until next salary: ${countdownText}\n📆 ${nextSalaryText}`;
     }
 }
