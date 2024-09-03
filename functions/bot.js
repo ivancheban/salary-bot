@@ -44,28 +44,22 @@ function isUkrainianHoliday(date) {
 
 function getNextSalaryDate(currentDate) {
     const salaryTime = { hour: 12, minute: 10 };
-    let nextSalary;
+    let nextSalary = currentDate.clone().startOf('month').add(4, 'days').set(salaryTime);
 
-    if (currentDate.isBefore(moment.tz('2023-09-05 12:10', KYIV_TZ))) {
-        nextSalary = moment.tz('2023-09-05 12:10', KYIV_TZ);
-    } else {
-        nextSalary = currentDate.clone().startOf('month').add(4, 'days')
-            .set(salaryTime);
-        
-        if (currentDate.isAfter(nextSalary)) {
-            nextSalary.add(1, 'month');
-        }
+    // If we're past this month's salary date, move to next month
+    if (currentDate.isAfter(nextSalary)) {
+        nextSalary.add(1, 'month');
+    }
 
-        const quarterEndMonths = [3, 6, 9, 12];
-        if (quarterEndMonths.includes(nextSalary.month() + 1)) {
-            nextSalary = nextSalary.endOf('month').set(salaryTime);
-        }
+    // Adjust for quarter-end months (March, June, September, December)
+    const quarterEndMonths = [2, 5, 8, 11]; // 0-indexed months
+    if (quarterEndMonths.includes(nextSalary.month())) {
+        nextSalary = nextSalary.endOf('month').set(salaryTime);
+    }
 
-        while (nextSalary.day() >= 5 || isUkrainianHoliday(nextSalary)) {
-            nextSalary.subtract(1, 'day');
-        }
-
-        nextSalary.set(salaryTime);
+    // Adjust for weekends and holidays
+    while (nextSalary.day() === 0 || nextSalary.day() === 6 || isUkrainianHoliday(nextSalary)) {
+        nextSalary.subtract(1, 'day');
     }
 
     return nextSalary;
