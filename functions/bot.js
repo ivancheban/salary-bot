@@ -50,16 +50,22 @@ function getNextSalaryDate(currentDate) {
     let nextSalary;
 
     // Determine the end of the current quarter
-    const quarterEnd = currentDate.clone().endOf('quarter');
+    const currentQuarterEnd = currentDate.clone().endOf('quarter');
     
-    // If we're in the last month of the quarter, or past the 5th of the first month of the next quarter
-    if (currentDate.month() === quarterEnd.month() || 
-        (currentDate.month() === quarterEnd.add(1, 'month').month() && currentDate.date() > 5)) {
-        // Move to the end of the next quarter
-        nextSalary = currentDate.clone().add(1, 'quarter').endOf('quarter');
+    // If we're before or on the last day of the current quarter
+    if (currentDate.isSameOrBefore(currentQuarterEnd)) {
+        nextSalary = currentQuarterEnd;
     } else {
-        // Otherwise, set to the 5th of the first month of the current quarter
-        nextSalary = quarterEnd.startOf('quarter').add(4, 'days');
+        // We're in the next quarter, so check if we're past the 5th
+        const nextQuarterStart = currentQuarterEnd.clone().add(1, 'day');
+        const fifthOfNextQuarter = nextQuarterStart.clone().add(4, 'days');
+        
+        if (currentDate.isSameOrBefore(fifthOfNextQuarter)) {
+            nextSalary = fifthOfNextQuarter;
+        } else {
+            // If we're past the 5th, the next salary is at the end of this new quarter
+            nextSalary = nextQuarterStart.clone().endOf('quarter');
+        }
     }
 
     // Adjust for weekends and holidays
