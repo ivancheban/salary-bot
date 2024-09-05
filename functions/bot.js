@@ -101,7 +101,7 @@ function getSalaryMessage(now, nextSalary) {
         return "📅 3 days remaining until Salary Day! 💰 It's getting closer! 🙌";
     } else {
         const countdownText = `${days}d ${hours}h ${minutes}m ${seconds}s`;
-        const nextSalaryText = `Next Salary: ${nextSalary.format('MMMM D, YYYY [at] HH:mm')}`;
+        const nextSalaryText = `Next Salary: ${nextSalary.format('MMMM D, YYYY')}`;
         return `⏳ Time until next salary: ${countdownText}\n📆 ${nextSalaryText}`;
     }
 }
