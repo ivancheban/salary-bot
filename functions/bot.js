@@ -47,11 +47,19 @@ function isUkrainianHoliday(date) {
 
 function getNextSalaryDate(currentDate) {
     const salaryTime = { hour: 12, minute: 10 };
-    let nextSalary = currentDate.clone().startOf('month').add(4, 'days').set(salaryTime);
+    let nextSalary;
 
-    // If we're past this month's salary date, move to next month
-    if (currentDate.isAfter(nextSalary)) {
-        nextSalary.add(1, 'month');
+    // Determine the end of the current quarter
+    const quarterEnd = currentDate.clone().endOf('quarter');
+    
+    // If we're in the last month of the quarter, or past the 5th of the first month of the next quarter
+    if (currentDate.month() === quarterEnd.month() || 
+        (currentDate.month() === quarterEnd.add(1, 'month').month() && currentDate.date() > 5)) {
+        // Move to the end of the next quarter
+        nextSalary = currentDate.clone().add(1, 'quarter').endOf('quarter');
+    } else {
+        // Otherwise, set to the 5th of the first month of the current quarter
+        nextSalary = quarterEnd.startOf('quarter').add(4, 'days');
     }
 
     // Adjust for weekends and holidays
@@ -59,7 +67,7 @@ function getNextSalaryDate(currentDate) {
         nextSalary.subtract(1, 'day');
     }
 
-    // Keep the time at 12:10
+    // Set the time to 12:10
     nextSalary.set(salaryTime);
 
     return nextSalary;
