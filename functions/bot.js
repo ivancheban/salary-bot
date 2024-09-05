@@ -66,6 +66,10 @@ function getNextSalaryDate(currentDate) {
 }
 
 function getSalaryMessage(now, nextSalary) {
+    if (now.isSame(nextSalary, 'day')) {
+        return "🎉🎊 It's Salary Day! 💰💸 Enjoy your well-earned money! 🥳🍾";
+    }
+
     const difference = nextSalary.diff(now);
     const duration = moment.duration(difference);
     const days = Math.floor(duration.asDays());
@@ -73,9 +77,7 @@ function getSalaryMessage(now, nextSalary) {
     const minutes = duration.minutes();
     const seconds = duration.seconds();
 
-    if (difference <= 0) {
-        return "🎉🎊 It's Salary Day! 💰💸 Enjoy your well-earned money! 🥳🍾";
-    } else if (days === 0) {
+    if (days === 0) {
         return `⏰ Only ${hours}h ${minutes}m ${seconds}s left until Salary Day! 💰 Get ready to celebrate! 🎉`;
     } else if (days === 1) {
         return `⏰ Only 1 day and ${hours}h ${minutes}m left until Salary Day! 💰 Get ready to celebrate! 🎉`;
