@@ -46,6 +46,7 @@ function isUkrainianHoliday(date) {
 }
 
 function getNextSalaryDate(currentDate) {
+    console.log('Calculating next salary date for:', currentDate.format('YYYY-MM-DD HH:mm'));
     const salaryTime = { hour: 12, minute: 10 };
     let nextSalary;
 
@@ -53,13 +54,18 @@ function getNextSalaryDate(currentDate) {
     const currentQuarterEnd = currentDate.clone().endOf('quarter');
     const nextQuarterStart = currentQuarterEnd.clone().add(1, 'day').startOf('day');
 
+    console.log('Current quarter end:', currentQuarterEnd.format('YYYY-MM-DD'));
+    console.log('Next quarter start:', nextQuarterStart.format('YYYY-MM-DD'));
+
     // Check if we're in a new month
     if (currentDate.date() > 5) {
         // If we're past the 5th, look at the next month
         nextSalary = currentDate.clone().add(1, 'month').date(5);
+        console.log('Past the 5th, next salary initially set to:', nextSalary.format('YYYY-MM-DD'));
     } else {
         // We're in a new month, so the next salary is on the 5th
         nextSalary = currentDate.clone().date(5);
+        console.log('Before or on the 5th, next salary initially set to:', nextSalary.format('YYYY-MM-DD'));
     }
 
     // Adjust for end of quarter scenario
@@ -67,16 +73,19 @@ function getNextSalaryDate(currentDate) {
         // If the next regular salary day is in the next quarter,
         // the actual next salary day is the end of the current quarter
         nextSalary = currentQuarterEnd;
+        console.log('Adjusted for end of quarter:', nextSalary.format('YYYY-MM-DD'));
     }
 
     // Adjust for weekends and holidays
     while (nextSalary.day() === 0 || nextSalary.day() === 6 || isUkrainianHoliday(nextSalary)) {
         nextSalary.subtract(1, 'day');
+        console.log('Adjusted for weekend/holiday:', nextSalary.format('YYYY-MM-DD'));
     }
 
     // Set the time to 12:10
     nextSalary.set(salaryTime);
 
+    console.log('Final next salary date:', nextSalary.format('YYYY-MM-DD HH:mm'));
     return nextSalary;
 }
 
@@ -113,6 +122,7 @@ bot.command('when_salary', async (ctx) => {
     const nextSalary = getNextSalaryDate(now);
     console.log('Next salary date:', nextSalary.format('YYYY-MM-DD HH:mm'));
     const message = getSalaryMessage(now, nextSalary);
+    console.log('Message:', message);
     await ctx.reply(message);
 });
 
