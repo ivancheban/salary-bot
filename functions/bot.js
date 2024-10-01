@@ -50,37 +50,38 @@ function getNextSalaryDate(currentDate) {
     const salaryTime = { hour: 12, minute: 10 };
     let nextSalary;
 
-    // Determine the current quarter end
+    // Determine the current quarter end and start
     const currentQuarterEnd = currentDate.clone().endOf('quarter');
+    const currentQuarterStart = currentDate.clone().startOf('quarter');
     console.log('Current quarter end:', currentQuarterEnd.format('YYYY-MM-DD'));
+    console.log('Current quarter start:', currentQuarterStart.format('YYYY-MM-DD'));
 
-    // Check if we're in the last month of a quarter
+    // Check if we're in the last month of a quarter or the first month of a new quarter
     const isLastMonthOfQuarter = currentDate.month() % 3 === 2;
+    const isFirstMonthOfQuarter = currentDate.month() % 3 === 0;
     console.log('Is last month of quarter:', isLastMonthOfQuarter);
+    console.log('Is first month of quarter:', isFirstMonthOfQuarter);
 
     if (isLastMonthOfQuarter) {
-        // If we're in the last month of a quarter
         if (currentDate.date() <= 5) {
-            // If we're on or before the 5th, next salary is on the 5th of this month
             nextSalary = currentDate.clone().date(5);
             console.log('In last month of quarter, before or on 5th, next salary set to:', nextSalary.format('YYYY-MM-DD'));
-        } else if (currentDate.isSameOrBefore(currentQuarterEnd)) {
-            // If we're after the 5th but before or on the last day of the quarter, next salary is end of quarter
-            nextSalary = currentQuarterEnd;
-            console.log('In last month of quarter, after 5th, next salary set to quarter end:', nextSalary.format('YYYY-MM-DD'));
         } else {
-            // If we're past the end of the quarter, next salary is 5th of the month after next
-            nextSalary = currentDate.clone().add(2, 'months').date(5);
-            console.log('Just past end of quarter, next salary set to:', nextSalary.format('YYYY-MM-DD'));
+            nextSalary = currentQuarterEnd.clone();
+            console.log('In last month of quarter, after 5th, next salary set to quarter end:', nextSalary.format('YYYY-MM-DD'));
         }
+    } else if (isFirstMonthOfQuarter) {
+        // If we're in the first month of a quarter, next salary is on the 5th of the next month
+        nextSalary = currentDate.clone().add(1, 'month').date(5);
+        console.log('In first month of quarter, next salary set to:', nextSalary.format('YYYY-MM-DD'));
     } else {
-        // If we're not in the last month of a quarter, normal 5th of month logic applies
+        // For other months, use the regular 5th of month logic
         if (currentDate.date() > 5) {
             nextSalary = currentDate.clone().add(1, 'month').date(5);
         } else {
             nextSalary = currentDate.clone().date(5);
         }
-        console.log('Not in last month of quarter, next salary set to:', nextSalary.format('YYYY-MM-DD'));
+        console.log('Not in last or first month of quarter, next salary set to:', nextSalary.format('YYYY-MM-DD'));
     }
 
     // Adjust for weekends and holidays
