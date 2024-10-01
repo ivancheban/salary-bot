@@ -49,23 +49,24 @@ function getNextSalaryDate(currentDate) {
     const salaryTime = { hour: 12, minute: 10 };
     let nextSalary;
 
-    // Determine the end of the current quarter
+    // Determine the current quarter end and next quarter start
     const currentQuarterEnd = currentDate.clone().endOf('quarter');
-    
-    // If we're before or on the last day of the current quarter
-    if (currentDate.isSameOrBefore(currentQuarterEnd)) {
-        nextSalary = currentQuarterEnd;
+    const nextQuarterStart = currentQuarterEnd.clone().add(1, 'day').startOf('day');
+
+    // Check if we're in a new month
+    if (currentDate.date() > 5) {
+        // If we're past the 5th, look at the next month
+        nextSalary = currentDate.clone().add(1, 'month').date(5);
     } else {
-        // We're in the next quarter, so check if we're past the 5th
-        const nextQuarterStart = currentQuarterEnd.clone().add(1, 'day');
-        const fifthOfNextQuarter = nextQuarterStart.clone().add(4, 'days');
-        
-        if (currentDate.isSameOrBefore(fifthOfNextQuarter)) {
-            nextSalary = fifthOfNextQuarter;
-        } else {
-            // If we're past the 5th, the next salary is at the end of this new quarter
-            nextSalary = nextQuarterStart.clone().endOf('quarter');
-        }
+        // We're in a new month, so the next salary is on the 5th
+        nextSalary = currentDate.clone().date(5);
+    }
+
+    // Adjust for end of quarter scenario
+    if (nextSalary.isAfter(currentQuarterEnd)) {
+        // If the next regular salary day is in the next quarter,
+        // the actual next salary day is the end of the current quarter
+        nextSalary = currentQuarterEnd;
     }
 
     // Adjust for weekends and holidays
@@ -108,7 +109,9 @@ function getSalaryMessage(now, nextSalary) {
 
 bot.command('when_salary', async (ctx) => {
     const now = moment().tz(KYIV_TZ);
+    console.log('Current date:', now.format('YYYY-MM-DD HH:mm'));
     const nextSalary = getNextSalaryDate(now);
+    console.log('Next salary date:', nextSalary.format('YYYY-MM-DD HH:mm'));
     const message = getSalaryMessage(now, nextSalary);
     await ctx.reply(message);
 });
