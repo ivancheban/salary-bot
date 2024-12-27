@@ -50,10 +50,10 @@ function getNextSalaryDate(currentDate) {
     const salaryTime = { hour: 12, minute: 10 };
     let nextSalary;
 
-    // Special case for December 27, 2024 and the following month
-    if (currentDate.year() === 2024 && currentDate.month() === 11 && currentDate.date() >= 27) {
-        nextSalary = moment.tz([2025, 1, 5], KYIV_TZ); // February 5, 2025
-        console.log('Special case: Next salary after Dec 27, 2024 set to:', nextSalary.format('YYYY-MM-DD'));
+    // Special case for December 2024
+    if (currentDate.year() === 2024 && currentDate.month() === 11) {
+        nextSalary = moment.tz([2024, 11, 27], KYIV_TZ); // December 27, 2024
+        console.log('Special case: Salary date for December 2024 set to:', nextSalary.format('YYYY-MM-DD'));
     } else if (currentDate.year() === 2025 && currentDate.month() === 0) {
         nextSalary = moment.tz([2025, 1, 5], KYIV_TZ); // February 5, 2025
         console.log('Special case: No salary in January 2025, next set to:', nextSalary.format('YYYY-MM-DD'));
