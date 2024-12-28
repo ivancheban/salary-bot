@@ -107,12 +107,14 @@ function getSalaryMessage(now, nextSalary) {
 
     const difference = nextSalary.diff(now);
     const duration = moment.duration(difference);
-    const days = Math.floor(duration.asDays());
-    const hours = duration.hours();
-    const minutes = duration.minutes();
-    const seconds = duration.seconds();
+    const days = Math.abs(Math.floor(duration.asDays())); // Use absolute value for days
+    const hours = Math.abs(duration.hours());
+    const minutes = Math.abs(duration.minutes());
+    const seconds = Math.abs(duration.seconds());
 
-    if (days === 0) {
+    if (difference < 0) { // Next salary date is in the past
+        return `⏳ The next salary date has already passed. It was on ${nextSalary.format('MMMM D, YYYY')}.`;
+    } else if (days === 0) {
         return `⏰ Only ${hours}h ${minutes}m ${seconds}s left until Salary Day! 💰 Get ready to celebrate! 🎉`;
     } else if (days === 1) {
         return `⏰ Only 1 day and ${hours}h ${minutes}m left until Salary Day! 💰 Get ready to celebrate! 🎉`;
