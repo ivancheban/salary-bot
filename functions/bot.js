@@ -50,10 +50,10 @@ function getNextSalaryDate(currentDate) {
     const salaryTime = { hour: 12, minute: 10 };
     let nextSalary;
 
-    // Special case for December 2024
-    if (currentDate.year() === 2024 && currentDate.month() === 11) {
-        nextSalary = moment.tz([2024, 11, 27], KYIV_TZ); // December 27, 2024
-        console.log('Special case: Salary date for December 2024 set to:', nextSalary.format('YYYY-MM-DD'));
+    // Special case for December 27, 2024 and the following month
+    if (currentDate.year() === 2024 && currentDate.month() === 11 && currentDate.date() >= 27) {
+        nextSalary = moment.tz([2025, 1, 5], KYIV_TZ); // February 5, 2025
+        console.log('Special case: Next salary after Dec 30, 2024 set to:', nextSalary.format('YYYY-MM-DD'));
     } else if (currentDate.year() === 2025 && currentDate.month() === 0) {
         nextSalary = moment.tz([2025, 1, 5], KYIV_TZ); // February 5, 2025
         console.log('Special case: No salary in January 2025, next set to:', nextSalary.format('YYYY-MM-DD'));
@@ -107,20 +107,12 @@ function getSalaryMessage(now, nextSalary) {
 
     const difference = nextSalary.diff(now);
     const duration = moment.duration(difference);
-    const days = Math.abs(Math.floor(duration.asDays())); // Use absolute value for days
-    const hours = Math.abs(duration.hours());
-    const minutes = Math.abs(duration.minutes());
-    const seconds = Math.abs(duration.seconds());
+    const days = Math.floor(duration.asDays());
+    const hours = duration.hours();
+    const minutes = duration.minutes();
+    const seconds = duration.seconds();
 
-    const lastSalaryDateOf2024 = moment.tz([2024, 11, 27], KYIV_TZ); // December 27, 2024
-
-    if (now.isAfter(lastSalaryDateOf2024)) { // Current date is after the last salary date of 2024
-        const salaryDatesFor2025 = getSalaryDatesFor2025();
-        const nextSalaryDateOf2025 = moment.tz(salaryDatesFor2025[0], 'YYYY-MM-DD', KYIV_TZ);
-        return `⏳ The next salary date is ${nextSalaryDateOf2025.format('MMMM D, YYYY')}.`;
-    } else if (difference < 0) { // Next salary date is in the past
-        return `⏳ The next salary date has already passed. It was on ${nextSalary.format('MMMM D, YYYY')}.`;
-    } else if (days === 0) {
+    if (days === 0) {
         return `⏰ Only ${hours}h ${minutes}m ${seconds}s left until Salary Day! 💰 Get ready to celebrate! 🎉`;
     } else if (days === 1) {
         return `⏰ Only 1 day and ${hours}h ${minutes}m left until Salary Day! 💰 Get ready to celebrate! 🎉`;
