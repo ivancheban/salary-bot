@@ -112,7 +112,13 @@ function getSalaryMessage(now, nextSalary) {
     const minutes = Math.abs(duration.minutes());
     const seconds = Math.abs(duration.seconds());
 
-    if (difference < 0) { // Next salary date is in the past
+    const lastSalaryDateOf2024 = moment.tz([2024, 11, 27], KYIV_TZ); // December 27, 2024
+
+    if (now.isAfter(lastSalaryDateOf2024)) { // Current date is after the last salary date of 2024
+        const salaryDatesFor2025 = getSalaryDatesFor2025();
+        const nextSalaryDateOf2025 = moment.tz(salaryDatesFor2025[0], 'YYYY-MM-DD', KYIV_TZ);
+        return `⏳ The next salary date is ${nextSalaryDateOf2025.format('MMMM D, YYYY')}.`;
+    } else if (difference < 0) { // Next salary date is in the past
         return `⏳ The next salary date has already passed. It was on ${nextSalary.format('MMMM D, YYYY')}.`;
     } else if (days === 0) {
         return `⏰ Only ${hours}h ${minutes}m ${seconds}s left until Salary Day! 💰 Get ready to celebrate! 🎉`;
