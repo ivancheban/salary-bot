@@ -57,12 +57,16 @@ function getNextSalaryDate(currentDate) {
     } else if (currentDate.year() === 2025 && currentDate.month() === 0) {
         nextSalary = moment.tz([2025, 1, 5], KYIV_TZ); // February 5, 2025
         console.log('Special case: No salary in January 2025, next set to:', nextSalary.format('YYYY-MM-DD'));
-    } else {
-        // Determine the current quarter end and start
+    } 
+    // Add special case for April 2025
+    else if (currentDate.year() === 2025 && currentDate.month() === 3 && currentDate.date() <= 30) {
+        nextSalary = moment.tz([2025, 3, 30], KYIV_TZ); // April 30, 2025
+        console.log('Special case: April 2025 salary set to:', nextSalary.format('YYYY-MM-DD'));
+    }
+    else {
         const currentQuarterEnd = currentDate.clone().endOf('quarter');
         const currentQuarterStart = currentDate.clone().startOf('quarter');
 
-        // Check if we're in the last month of a quarter or the first month of a new quarter
         const isLastMonthOfQuarter = currentDate.month() % 3 === 2;
         const isFirstMonthOfQuarter = currentDate.month() % 3 === 0;
 
@@ -213,7 +217,6 @@ exports.handler = async (event) => {
     }
 };
 
-// Function to get salary dates for 2025
 function getSalaryDatesFor2025() {
     let currentDate = moment.tz([2024, 11, 31], KYIV_TZ); // Start from Dec 31, 2024
     let salaryDates = [];
