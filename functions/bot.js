@@ -64,10 +64,14 @@ function getNextSalaryDate(currentDate) {
         const isLastMonthOfQuarter = currentDate.month() % 3 === 2;
         const isFirstMonthOfQuarter = currentDate.month() % 3 === 0;
         const isApril = currentDate.month() === 3; // April is month 3 (0-based)
+        const isMay = currentDate.month() === 4;   // May is month 4 (0-based)
 
         // Special handling for April (for May's salary)
         if (isApril) {
             nextSalary = currentDate.clone().endOf('month'); // Set to April 30
+        } else if (isMay && currentDate.date() <= 5) {
+            // Skip May 5th and set to June 5th
+            nextSalary = currentDate.clone().add(1, 'month').date(5);
         } else if (isLastMonthOfQuarter) {
             if (currentDate.date() <= 5) {
                 nextSalary = currentDate.clone().date(5);
