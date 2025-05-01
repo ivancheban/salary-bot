@@ -133,14 +133,17 @@ function getSalaryMessage(now, nextSalary) {
     }
 }
 
-bot.hears(['/when_salary'], async (ctx) => {
-    const now = moment().tz(KYIV_TZ);
-    console.log('Current date:', now.format('YYYY-MM-DD HH:mm'));
-    const nextSalary = getNextSalaryDate(now);
-    console.log('Next salary date:', nextSalary.format('YYYY-MM-DD HH:mm'));
-    const message = getSalaryMessage(now, nextSalary);
-    console.log('Message:', message);
-    await ctx.reply(message);
+bot.on('message', async (ctx) => {
+    const messageText = ctx.message.text;
+    if (messageText === '/when_salary' || messageText === '/when_salary@ivan_salary_bot') {
+        const now = moment().tz(KYIV_TZ);
+        console.log('Current date:', now.format('YYYY-MM-DD HH:mm'));
+        const nextSalary = getNextSalaryDate(now);
+        console.log('Next salary date:', nextSalary.format('YYYY-MM-DD HH:mm'));
+        const message = getSalaryMessage(now, nextSalary);
+        console.log('Message:', message);
+        await ctx.reply(message);
+    }
 });
 
 async function sendDailyNotification() {
