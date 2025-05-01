@@ -133,7 +133,7 @@ function getSalaryMessage(now, nextSalary) {
     }
 }
 
-bot.command(['when_salary', 'when_salary@ivan_salary_bot'], async (ctx) => {
+bot.hears(['/when_salary', '/when_salary@ivan_salary_bot'], async (ctx) => {
     const now = moment().tz(KYIV_TZ);
     console.log('Current date:', now.format('YYYY-MM-DD HH:mm'));
     const nextSalary = getNextSalaryDate(now);
