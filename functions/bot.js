@@ -10,21 +10,32 @@ const KYIV_TZ = "Europe/Kiev";
 const CHAT_ID = "-1001581609986";
 const COMMAND_COOLDOWN_MS = 5000;
 
+const isLocalRun =
+  require.main === module &&
+  !process.env.AWS_LAMBDA_FUNCTION_NAME &&
+  !process.env.FUNCTION_TARGET &&
+  !process.env.FUNCTIONS_SIGNATURE_TYPE;
+
 // --- Basic Startup Check ---
-if (!BOT_TOKEN) {
+if (!isLocalRun && !BOT_TOKEN) {
   console.error(
     "FATAL ERROR: Bot token not provided in environment variable 'TOKEN'"
   );
   throw new Error("Bot token not provided in environment variable 'TOKEN'");
 }
 
-const bot = new Telegraf(BOT_TOKEN);
+const bot = isLocalRun ? { telegram: { getMe: () => Promise.resolve({ username: 'local_bot' }) }, on: () => {}, handleUpdate: () => {} } : new Telegraf(BOT_TOKEN);
 
 // --- State ---
 let lastNotificationDate = null;
 const userLastCommandTime = {};
 
 // --- Date/Holiday Functions ---
+function isEndOfQuarter(date) {
+  const month = date.month(); // 0-indexed (0=Jan, 11=Dec)
+  return month === 2 || month === 5 || month === 8 || month === 11;
+}
+
 function easter(year) {
   /* ... unchanged ... */
   const a = year % 19;
@@ -111,113 +122,53 @@ function getNextSalaryDate(currentDate) {
   const salaryTime = { hour: 12, minute: 10, second: 0, millisecond: 0 };
   const currentYear = currentDate.year();
 
-  // --- Handle specific 2025 override FIRST ---
-  if (
-    (currentDate.year() === 2024 &&
-      currentDate.month() === 11 &&
-      currentDate.date() >= 27) ||
-    (currentDate.year() === 2025 && currentDate.month() === 0)
-  ) {
-    let nextSalaryBase = moment.tz([2025, 1, 5], KYIV_TZ);
-    console.log("[getNextSalaryDate] Special case -> Feb 5, 2025");
-    let nextSalaryAdjusted = adjustForWeekendHoliday(nextSalaryBase, KYIV_TZ);
-    nextSalaryAdjusted.set(salaryTime);
-    console.log(
-      "[getNextSalaryDate] Final (special):",
-      nextSalaryAdjusted.format("YYYY-MM-DD HH:mm Z")
-    );
-    return nextSalaryAdjusted;
-  }
-
-  // --- Define all potential TARGET salary dates (before adjustment) ---
-  // PLEASE VERIFY THIS LIST IS YOUR EXACT INTENDED SCHEDULE
   const targetDatesRaw = [];
+  const monthsFollowingQuarterEnd = [0, 3, 6, 9]; // Jan, Apr, Jul, Oct
+
+  // Generate all potential salary dates for the current and next year
   for (let yearOffset = 0; yearOffset <= 1; yearOffset++) {
-    // Check current and next year
     const year = currentYear + yearOffset;
-    targetDatesRaw.push(moment.tz([year, 1, 5], KYIV_TZ)); // Feb 5
-    targetDatesRaw.push(moment.tz([year, 2, 5], KYIV_TZ)); // Mar 5
-    targetDatesRaw.push(moment.tz([year, 3], KYIV_TZ).endOf("month")); // Apr EOM
-    // If June 5th is a payment, and June EOM is ALSO the next end-of-quarter payment
-    targetDatesRaw.push(moment.tz([year, 5, 5], KYIV_TZ)); // June 5th
-    targetDatesRaw.push(moment.tz([year, 5], KYIV_TZ).endOf("month")); // June EOM (Q2 end)
-    targetDatesRaw.push(moment.tz([year, 7, 5], KYIV_TZ)); // Aug 5
-    // If Sep 5th is a payment, and Sep EOM is ALSO the next end-of-quarter payment
-    targetDatesRaw.push(moment.tz([year, 8, 5], KYIV_TZ)); // Sep 5th
-    targetDatesRaw.push(moment.tz([year, 8], KYIV_TZ).endOf("month")); // Sep EOM (Q3 end)
-    targetDatesRaw.push(moment.tz([year, 10, 5], KYIV_TZ)); // Nov 5
-    if (year === 2024) {
-      targetDatesRaw.push(moment.tz([2024, 11, 30], KYIV_TZ)); // Dec 30, 2024
-    } else {
-      targetDatesRaw.push(moment.tz([year, 11], KYIV_TZ).endOf("month")); // Dec EOM other years
+    for (let month = 0; month < 12; month++) {
+      const currentMoment = moment.tz([year, month], KYIV_TZ);
+
+      // Add payment on the 5th, UNLESS it's a month following a quarter-end
+      if (!monthsFollowingQuarterEnd.includes(month)) {
+        targetDatesRaw.push(moment.tz([year, month, 5], KYIV_TZ));
+      }
+
+      // Add end-of-month payment for quarter-end months
+      if (isEndOfQuarter(currentMoment)) {
+        targetDatesRaw.push(moment.tz([year, month], KYIV_TZ).endOf('month'));
+      }
     }
   }
 
-  // Sort and remove duplicates, then convert back to moment objects
-  const uniqueSortedTargetDates = Array.from(
-    new Set(targetDatesRaw.map((d) => d.format("YYYY-MM-DD")))
-  )
-    .map((ds) => moment.tz(ds, "YYYY-MM-DD", KYIV_TZ))
+  // Adjust all dates for weekends/holidays and sort them
+  const adjustedDates = targetDatesRaw.map(date => adjustForWeekendHoliday(date, KYIV_TZ));
+
+  // Remove duplicates and sort
+  const uniqueAdjustedDates = Array.from(new Set(adjustedDates.map(d => d.format('YYYY-MM-DD'))))
+    .map(ds => moment.tz(ds, 'YYYY-MM-DD', KYIV_TZ))
     .sort((a, b) => a.valueOf() - b.valueOf());
 
-  console.log(
-    "[getNextSalaryDate] Unique Sorted Potential Target Dates:",
-    uniqueSortedTargetDates.map((d) => d.format("YYYY-MM-DD"))
-  );
 
-  let nextSalaryTarget = null;
-
-  for (const targetDate of uniqueSortedTargetDates) {
-    // Option 1: If target date is today AND salary time hasn't passed (or is now)
-    if (targetDate.isSame(currentDate, "day")) {
-      const targetDateTime = targetDate.clone().set(salaryTime); // Target day at salary time
-      if (targetDateTime.isSameOrAfter(currentDate)) {
-        // Compare with current time
-        nextSalaryTarget = targetDate.clone(); // Target is today
-        console.log(
-          `[getNextSalaryDate] Target is today (payment time pending/now): ${nextSalaryTarget.format(
-            "YYYY-MM-DD"
-          )}`
-        );
-        break;
-      }
-      // If salary time for today has passed, this target is skipped, look for next actual date
+  // Find the next salary date from the sorted list
+  for (const targetDate of uniqueAdjustedDates) {
+    const targetDateTime = targetDate.clone().set(salaryTime);
+    if (targetDateTime.isAfter(currentDate)) {
       console.log(
-        `[getNextSalaryDate] Target is today, but payment time passed: ${targetDate.format(
-          "YYYY-MM-DD HH:mm"
-        )}`
+        "[getNextSalaryDate] Final chosen salary date:",
+        targetDateTime.format("YYYY-MM-DD HH:mm Z")
       );
-    }
-    // Option 2: If target date is strictly after current date
-    else if (targetDate.isAfter(currentDate, "day")) {
-      nextSalaryTarget = targetDate.clone();
-      console.log(
-        `[getNextSalaryDate] Next target (future day): ${nextSalaryTarget.format(
-          "YYYY-MM-DD"
-        )}`
-      );
-      break;
+      return targetDateTime;
     }
   }
 
-  if (!nextSalaryTarget) {
-    console.error(
-      "[getNextSalaryDate] FATAL: No next date found after processing all targets!"
-    );
-    return moment().add(10, "years"); // Return error date
-  }
 
-  // --- Apply Weekend/Holiday Adjustment ---
-  let nextSalaryAdjusted = adjustForWeekendHoliday(nextSalaryTarget, KYIV_TZ);
-
-  // --- Set the specific time AFTER adjustments ---
-  nextSalaryAdjusted.set(salaryTime);
-
-  console.log(
-    "[getNextSalaryDate] Final chosen salary date:",
-    nextSalaryAdjusted.format("YYYY-MM-DD HH:mm Z")
+  console.error(
+    "[getNextSalaryDate] FATAL: No next date found after processing all targets!"
   );
-  return nextSalaryAdjusted;
+  return moment().add(10, "years"); // Return error date
 }
 // *** END OF REFINED getNextSalaryDate ***
 
@@ -446,15 +397,15 @@ exports.handler = async (event, context) => {
 function getSalaryDatesForYear(yearToTest) {
   /* ... unchanged ... */
   console.log(`\n[Test] Salary dates for ${yearToTest}...`);
-  let currentDate = moment.tz([yearToTest - 1, 11, 31], KYIV_TZ);
+  let currentDate = moment.tz([yearToTest - 1, 11, 30], KYIV_TZ); // Start from one day before the year
   let salaryDates = new Set();
   let calcCount = 0;
-  const maxCalc = 24;
+  const maxCalc = 30; // Increased for more dates per year
   while (currentDate.year() < yearToTest + 1 && calcCount < maxCalc) {
     calcCount++;
     let nextSalaryDate = getNextSalaryDate(currentDate.clone());
-    if (nextSalaryDate.year() >= currentDate.year() + 5) {
-      console.error("[Test] Error date from calc.");
+    if (nextSalaryDate.year() >= yearToTest + 2) { // Check for large jumps
+      console.error("[Test] Error date from calc - jumped too far.", nextSalaryDate.format());
       break;
     }
     if (nextSalaryDate.year() === yearToTest) {
@@ -463,17 +414,24 @@ function getSalaryDatesForYear(yearToTest) {
         salaryDates.add(fmtDate);
         console.log(` -> ${nextSalaryDate.format("YYYY-MM-DD dddd, HH:mm")}`);
       }
-    } else if (nextSalaryDate.year() > yearToTest) break;
-    if (nextSalaryDate.isSameOrBefore(currentDate, "day")) {
-      console.error("[Test] Loop Error", {
+    } else if (nextSalaryDate.year() > yearToTest) {
+        // If we've passed the target year, we can stop.
+        break;
+    }
+    // This check was flawed. The new date can be the same day if the time is later.
+    // The core logic in getNextSalaryDate already ensures we are moving forward in time.
+    if (nextSalaryDate.isSameOrBefore(currentDate)) {
+       console.error("[Test] Loop Error: Not progressing in time.", {
         cur: currentDate.format(),
         calc: nextSalaryDate.format(),
       });
-      break;
+      // To prevent infinite loop, manually advance the date
+      currentDate.add(1, 'day');
+      continue;
     }
     currentDate = nextSalaryDate.clone();
   }
-  if (calcCount >= maxCalc) console.warn(`[Test] Max calcs.`);
+  if (calcCount >= maxCalc) console.warn(`[Test] Max calcs reached.`);
   console.log(`[Test] Found ${salaryDates.size} dates for ${yearToTest}.`);
   return Array.from(salaryDates).sort();
 }
