@@ -151,6 +151,15 @@ function getNextSalaryDate(currentDate) {
     .map(ds => moment.tz(ds, 'YYYY-MM-DD', KYIV_TZ))
     .sort((a, b) => a.valueOf() - b.valueOf());
 
+  // --- One-time override: replace Dec 31, 2025 with Dec 29, 2025 ---
+  // This implements the requested exceptional date without changing general rules.
+  for (let i = 0; i < uniqueAdjustedDates.length; i++) {
+    if (uniqueAdjustedDates[i].isSame(moment.tz([2025, 11, 31], KYIV_TZ), 'day')) {
+      uniqueAdjustedDates[i] = moment.tz([2025, 11, 29], KYIV_TZ);
+      console.log('[getNextSalaryDate] One-time override applied: 2025-12-31 -> 2025-12-29');
+    }
+  }
+
 
   // Find the next salary date from the sorted list
   for (const targetDate of uniqueAdjustedDates) {
