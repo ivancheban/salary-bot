@@ -160,6 +160,15 @@ function getNextSalaryDate(currentDate) {
     }
   }
 
+  // --- One-time override: make next salary for May 5, 2026 occur on April 30, 2026 ---
+  // This is a single exception; future cadence remains unchanged (e.g., June 5, 2026 next).
+  for (let i = 0; i < uniqueAdjustedDates.length; i++) {
+    if (uniqueAdjustedDates[i].isSame(moment.tz([2026, 4, 5], KYIV_TZ), 'day')) {
+      uniqueAdjustedDates[i] = moment.tz([2026, 3, 30], KYIV_TZ);
+      console.log('[getNextSalaryDate] One-time override applied: 2026-05-05 -> 2026-04-30');
+    }
+  }
+
 
   // Find the next salary date from the sorted list
   for (const targetDate of uniqueAdjustedDates) {
